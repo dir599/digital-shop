@@ -1,7 +1,8 @@
 import express from "express"
-import "./database/connection"
+import "./database/prisma"
 
 const app = express()
+app.use(express.json())
 
 
 

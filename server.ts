@@ -1,5 +1,6 @@
 import app from "./src/app";
 import { envConfig } from "./src/config/config";
+// import prisma from "./src/database/prisma";
 
 function startServer() {
     const PORT = envConfig.port || 4000

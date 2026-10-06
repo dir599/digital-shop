@@ -9,12 +9,12 @@ interface RegisterData {
 
 export const register = async (data: RegisterData) => {
   const { username, email, password } = data;
-  const exitingUser = await prisma.user.findUnique({
+  const existingUser = await prisma.user.findUnique({
     where: {
       email,
     },
   });
-  if (exitingUser) {
+  if (existingUser) {
     throw new Error("user already exist");
   }
 

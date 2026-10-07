@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
-import { register } from "./auth.service";
+import { login, logoutUser, register } from "./auth.service";
+import { asyncHandler } from "../utils/asyncHandler";
 
 
 export const registerUser = async (
@@ -34,3 +35,30 @@ export const registerUser = async (
     user,
   });
 };
+
+export const userLogin = asyncHandler(async(req: Request, res: Response)=>{
+  const {email, password} = req.body
+  const user = await login({email, password})
+  return res.status(200).json({
+    success: true,
+    message: `user login successfully`,
+    data: user 
+    
+  })
+})
+
+export const userLogout = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user.id;
+
+    await logoutUser(userId);
+
+    res.clearCookie("accessToken");
+    res.clearCookie("refreshToken");
+
+    return res.status(200).json({
+      success: true,
+      message: "User logged out successfully",
+    });
+  }
+);

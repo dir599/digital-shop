@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { login, logoutUser, register } from "./auth.service";
+import { forgetPasswordServices, login, logoutUser, register, resetPasswordService} from "./auth.service";
 import { asyncHandler } from "../utils/asyncHandler";
 
 
@@ -39,7 +39,22 @@ export const registerUser = async (
 export const userLogin = asyncHandler(async(req: Request, res: Response)=>{
   const {email, password} = req.body
   const user = await login({email, password})
-  return res.status(200).json({
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/"
+  }
+  return res.status(200)
+  .cookie("accessToken", user.accessToken, {
+    ...cookieOptions,
+    maxAge: 15 * 60 * 1000,
+  })
+  .cookie("refreshToken", user.refreshToken, {
+    ...cookieOptions,
+    maxAge: 15 * 60 * 1000,
+  })
+  .json({
     success: true,
     message: `user login successfully`,
     data: user 
@@ -49,8 +64,8 @@ export const userLogin = asyncHandler(async(req: Request, res: Response)=>{
 
 export const userLogout = asyncHandler(
   async (req: Request, res: Response) => {
-    const userId = req.user.id;
-
+    const userId = req.user?.id;
+    
     await logoutUser(userId);
 
     res.clearCookie("accessToken");
@@ -62,3 +77,32 @@ export const userLogout = asyncHandler(
     });
   }
 );
+
+export const forgerPassword = asyncHandler(async(req: Request, res: Response)=>{
+   const {email} = req.body as {email: string}
+   if(!email || typeof email !== "string"){
+    throw new Error("Email or Password is not valid")
+   }
+   await forgetPasswordServices(email)
+   return res.status(200).json({
+    success: true,
+    message: "If an account is exist with that email, a reset link will be send "
+   })
+})
+
+export const resetPassword = asyncHandler(async(req: Request, res: Response)=>{
+  const {token} = req.params
+  const {password} = req.body as {password: string}
+  if(!password || !token || typeof token !== "string"){
+    throw new Error("Invalid token or password is required")
+  }
+  const success = await resetPasswordService(token, password)
+  if(!success){
+    return res.status(400).json({
+      message: "Invalid or expired reset link"
+    })
+  }
+  return res.status(200).json({
+    message: "Password reset successfully"
+  })
+})

@@ -2,6 +2,7 @@ import prisma from "../database/prisma";
 import { compare_Password, hash_Password } from "../utils/password";
 import { randomBytes, createHash } from "crypto";
 import { sendResetEmail } from "../utils/email";
+import { generateAccessToken, generateRefreshToken } from "../utils/token";
 
 interface RegisterData {
   username: string;
@@ -62,16 +63,33 @@ export const login = async (data: LoginData) => {
   if (!validPassword) {
     throw new Error("Email or password is invalid");
   }
+  const accessToken = generateAccessToken({
+    id: String(user.id),
+    username: user.username,
+    email: user.email,
+    role: user.role
+  })
+  const refreshToken = generateRefreshToken({
+    id: String(user.id),
+    username: user.username,
+    email: user.email,
+    role: user.role
+  })
   return {
     id: user.id,
     username: user.username,
     email: user.email,
     role: user.role,
+    accessToken,
+    refreshToken
+    
+    
   };
 };
 
 export const logoutUser = async (userId: number) => {
-  await prisma.user.update({
+  console.log(userId)
+  return await prisma.user.update({
     where: {
       id: userId,
     },
@@ -101,7 +119,39 @@ export const forgetPasswordServices = async (email: string): Promise<void> => {
       resetPasswordExpires: new Date(Date.now() + 15 * 60 * 1000),
     },
   });
-  const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`
-  await sendResetEmail(user.email, resetUrl)
+  const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+  await sendResetEmail(user.email, resetUrl);
 };
 
+export const resetPasswordService = async (
+  token: string,
+  newPassword: string,
+): Promise<boolean> => {
+  const hashedToken = createHash("sha256").update(token).digest("hex");
+
+  const user = await prisma.user.findFirst({
+    where: {
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: {
+        gt: new Date(),
+      },
+    },
+  });
+  if (!user) {
+    return false;
+  }
+  const hashedPassword = await hash_Password(newPassword);
+
+  await prisma.user.update({
+    where: {
+      id: user.id,
+    },
+    data: {
+      password: hashedPassword,
+      resetPasswordToken: null,
+      resetPasswordExpires: null,
+      refreshToken: null,
+    },
+  });
+  return true;
+};

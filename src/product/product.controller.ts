@@ -3,12 +3,13 @@ import { Request, Response } from "express";
 import { productSchema, updateProductSchema } from "./product.validation";
 import {
   deleteProductService,
+  getProductByIdService,
   getProductService,
   productService,
   updateProductService,
 } from "./product.service";
-import { number, success } from "zod";
-import da from "zod/v4/locales/da.js";
+import { ApiError } from "../utils/apiError";
+
 
 const productController = asyncHandler(async (req: Request, res: Response) => {
   const result = productSchema.safeParse(req.body);
@@ -41,6 +42,19 @@ const getProductController = asyncHandler(
     });
   },
 );
+
+const getProductByIdController = asyncHandler(async(req: Request, res: Response)=>{
+    const id = Number(req.params.id)
+    if(!Number.isInteger(id || id <=0)){
+      throw new ApiError(400, "Product not found")
+    }
+    const productById = await getProductByIdService(id)
+    return res.status(200).json({
+      success: true,
+      message: "Product get by Id.",
+      data: productById
+    })
+})
 
 const updateProductController = asyncHandler(
   async (req: Request, res: Response) => {
@@ -77,4 +91,4 @@ const deleteProductController = asyncHandler(async(req: Request, res: Response)=
     data: deleteProduct
    })
 })
-export { productController, getProductController, updateProductController, deleteProductController };
+export { productController, getProductController,getProductByIdController, updateProductController, deleteProductController };

@@ -1,11 +1,15 @@
 import { Router } from "express";
-import { deleteProductController, getProductController, productController, updateProductController } from "./product.controller";
+import { deleteProductController, getProductByIdController, getProductController, productController, updateProductController } from "./product.controller";
+import { verifyToken } from "../auth/auth.middleware";
+import { authorizeRoles } from "../auth/authorizeRole";
 
 
 const router =  Router()
-router.post("/createProduct", productController)
 router.get("/getProduct", getProductController)
-router.patch("/updateProduct/:id", updateProductController)
-router.delete("/deleteProduct/:id", deleteProductController)
+
+router.post("/createProduct",verifyToken, authorizeRoles("ADMIN"), productController)
+router.get("/getProductById/:id",verifyToken, authorizeRoles("ADMIN"), getProductByIdController)
+router.patch("/updateProduct/:id",verifyToken, authorizeRoles("ADMIN"), updateProductController)
+router.delete("/deleteProduct/:id",verifyToken, authorizeRoles("ADMIN"), deleteProductController)
 
 export default router

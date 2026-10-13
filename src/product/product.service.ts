@@ -1,8 +1,8 @@
-import { number } from "zod";
 import prisma from "../database/prisma";
 import { CreateProductData, UpdateProductData } from "./product.validation";
-import id from "zod/v4/locales/id.js";
-import tr from "zod/v4/locales/tr.js";
+
+import { ApiError } from "../utils/apiError";
+import { RequestHandler } from "express";
 
 const productService = async (data: CreateProductData) => {
   try {
@@ -38,6 +38,29 @@ const getProductService = async () => {
   return products;
 };
 
+const getProductByIdService = async (id: number) => {
+  const existProduct = await prisma.product.findUnique({
+    where: {
+      id: Number(id),
+    },
+  });
+  if (!existProduct) {
+    throw new ApiError(400, "Product not found");
+  }
+  const productById = await prisma.product.findMany({
+    select: {
+      name: true,
+      description: true,
+      price: true,
+      image: true,
+      category: true,
+      stock: true,
+    },
+  });
+
+  return productById;
+};
+
 const updateProductService = async (id: number, data: UpdateProductData) => {
   const existProduct = await prisma.product.findUnique({
     where: { id },
@@ -51,26 +74,32 @@ const updateProductService = async (id: number, data: UpdateProductData) => {
     },
     data,
   });
-  return updateProduct
+  return updateProduct;
 };
 
-const deleteProductService = async(id: number)=>{
+const deleteProductService = async (id: number) => {
   const existProduct = await prisma.product.findUnique({
-    where:{
-      id: id
-    }
-  })
-  if(!existProduct){
-    throw new Error("Product doesn't exist")
+    where: {
+      id: id,
+    },
+  });
+  if (!existProduct) {
+    throw new Error("Product doesn't exist");
   }
 
   const deleteProduct = await prisma.product.delete({
     where: {
-      id: id
-    }
-  })
+      id: id,
+    },
+  });
 
-  return deleteProduct
-}
+  return deleteProduct;
+};
 
-export { productService, getProductService, updateProductService, deleteProductService };
+export {
+  productService,
+  getProductService,
+  updateProductService,
+  getProductByIdService,
+  deleteProductService,
+};

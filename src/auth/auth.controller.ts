@@ -78,7 +78,7 @@ export const userLogout = asyncHandler(
   }
 );
 
-export const forgerPassword = asyncHandler(async(req: Request, res: Response)=>{
+export const forgetPassword = asyncHandler(async(req: Request, res: Response)=>{
    const {email} = req.body as {email: string}
    if(!email || typeof email !== "string"){
     throw new Error("Email or Password is not valid")
